@@ -181,5 +181,5 @@ dependencies:
     - widgetsnbextension==3.5.1
     - wrapt==1.11.2
     - xarray==0.12.3
-prefix: /home/Peter.Kerins/anaconda3/envs/geoml
+# prefix: /home/Peter.Kerins/anaconda3/envs/geoml
 
