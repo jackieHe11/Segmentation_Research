@@ -1,10 +1,10 @@
 from qgis.core import *
 import os
 
-from PyQt4.QtCore import QVariant
+from PyQt5.QtCore import QVariant
 
-city="johannesburg"
-region="SubSaharanAfrica"
-user="eric.pietraszkiewicz"
+city="Accra"
+region="EastAsia"
+user="sijinghe"
 
 root = QgsProject.instance().layerTreeRoot()

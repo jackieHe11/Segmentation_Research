@@ -2,9 +2,9 @@
 
 feature_name="Blocks"  # "Boundary", "Blocks" or "Roads" or "Areas"
 group="Arterial" # "T0" or "T1_T3" or "Arterial"
-
+dir_prefix='/Users/jackiehe/Desktop/Materials/research/Segmentation_Research/qgis_project/'
 # Set the directory where the input files are stored
-directory='C:/Users/'+user+'/World Resources Institute/Urban Land Use - Documents/AUE Data and Maps/City Data/'+region+'/'+city+'/'+city+'_'+feature_name+'/'+city+'_'+group+'/'
+directory=dir_prefix+city+'/'+city+'_'+feature_name+'/'+city+'_'+group+'/'
 #directory='C:/Users/'+user+'/World Resources Institute/Urban Land Use - Documents/AUE Data and Maps/WRI-NGS custom data from NYU/#WRI_Mexican_cities_submission'+'/'+city+'/'+city+'_'+feature_name+'/'+city+'_'+group+'/'
 
 file = ''+city+'_Master_AR_Medians.shp'
@@ -14,7 +14,7 @@ vlayer = QgsVectorLayer(directory +file , file , "ogr")
 print(file)
 
 # add the layer to the registry
-QgsMapLayerRegistry.instance().addMapLayer(vlayer, False)
+QgsProject.instance().addMapLayer(vlayer, False)
 
 # add the layer to the group
 QgsProject.instance().layerTreeRoot().addLayer(vlayer)
@@ -24,7 +24,7 @@ QgsProject.instance().layerTreeRoot().addLayer(vlayer)
 feature_name="Areas" 
 
 # Set the directory where the input files are stored
-directory='C:/Users/'+user+'/World Resources Institute/Urban Land Use - Documents/AUE Data and Maps/City Data/'+region+'/'+city+'/'+city+'_'+feature_name+'/'
+directory=dir_prefix+city+'/'+city+'_'+feature_name+'/'
 #directory='C:/Users/'+user+'/World Resources Institute/Urban Land Use - Documents/AUE Data and Maps/WRI-NGS custom data from NYU/#WRI_Mexican_cities_submission'+'/'+city+'/'+city+'_'+feature_name+'/'+city+'_'+group+'/'
 
 file = ''+city+'_studyArea.shp'
@@ -34,7 +34,7 @@ vlayer = QgsVectorLayer(directory +file , file , "ogr")
 print(file)
 
 # add the layer to the registry
-QgsMapLayerRegistry.instance().addMapLayer(vlayer, False)
+QgsProject.instance().addMapLayer(vlayer, False)
 
 # add the layer to the group
 QgsProject.instance().layerTreeRoot().addLayer(vlayer)
@@ -51,13 +51,11 @@ print(feature_num)
 group="T0" # "T0" or "T1_T3" or "Arterial"
 
 # Set the directory where the input files are stored
-directory='C:/Users/'+user+'/World Resources Institute/Urban Land Use - Documents/AUE Data and Maps/City Data/'+region+'/'+city+'/'+city+'_Blocks/'+city+'_'+group+'/'
-#directory='C:/Users/'+user+'/World Resources Institute/Urban Land Use - Documents/AUE Data and Maps/WRI-NGS custom data from NYU/#WRI_Mexican_cities_submission'+'/'+city+'/'+city+'_Blocks'+'/'+city+'_'+group+'/'
+group_name = f"{city}_{feature_name}_{group}"
+root = QgsProject.instance().layerTreeRoot()
 
-# Add group for layers
-iface.legendInterface().addGroup(''+city+'_'+feature_name+'_'+group+'')
-
-mygroup = root.findGroup(''+city+'_'+feature_name+'_'+group+'')
+# Create group in the layer tree
+mygroup = root.addGroup(group_name)
 
 # load vector layers
 for files in os.listdir(directory):
@@ -70,7 +68,7 @@ for files in os.listdir(directory):
         print(files)
 
         # add the layer to the registry
-        QgsMapLayerRegistry.instance().addMapLayer(vlayer, False)
+        QgsProject.instance().addMapLayer(vlayer, False)
         
         # add the layer to the group
         mygroup.addLayer(vlayer)
@@ -95,16 +93,26 @@ for file in fileList:
 
 # Get the Coordinate Reference System and the list of fields from the last input file
 crs = layer.crs().toWkt()
-field_list = layer.dataProvider().fields().toList()
- 
+field_list = [field for field in layer.fields()] 
 # Create the merged layer by checking the geometry type of  the input files (for other types, please see the API documentation)
-if layer.wkbType()==QGis.WKBPoint:
-    v_layer = QgsVectorLayer('Point?crs=' + crs, "Boundary T0 Merged", "memory")
-if layer.wkbType()==QGis.WKBLineString:
-    v_layer = QgsVectorLayer('LineString?crs=' + crs, "Boundary T0 Merged", "memory")
-if layer.wkbType()==QGis.WKBPolygon:
-    v_layer = QgsVectorLayer('Polygon?crs=' + crs, "Boundary T0 Merged", "memory")
-
+# if layer.wkbType()==QGis.WKBPoint:
+#     v_layer = QgsVectorLayer('Point?crs=' + crs, "Boundary T0 Merged", "memory")
+# if layer.wkbType()==QGis.WKBLineString:
+#     v_layer = QgsVectorLayer('LineString?crs=' + crs, "Boundary T0 Merged", "memory")
+# if layer.wkbType()==QGis.WKBPolygon:
+#     v_layer = QgsVectorLayer('Polygon?crs=' + crs, "Boundary T0 Merged", "memory")
+from qgis.core import QgsWkbTypes, QgsVectorLayer
+wkb_type = layer.wkbType()
+merge_tag="Boundary T0 Merged"
+if wkb_type == QgsWkbTypes.Point:
+    v_layer = QgsVectorLayer(f'Point?crs={crs}', merge_tag, "memory")
+elif wkb_type == QgsWkbTypes.LineString:
+    v_layer = QgsVectorLayer(f'LineString?crs={crs}', merge_tag, "memory")
+elif wkb_type == QgsWkbTypes.Polygon:
+    v_layer = QgsVectorLayer(f'Polygon?crs={crs}', merge_tag, "memory")
+elif wkb_type == QgsWkbTypes.MultiLineString:
+    v_layer = QgsVectorLayer(f'MultiLineString?crs={crs}', merge_tag, "memory")
+    print('T')
 # Add the features to the merged layer
 prov = v_layer.dataProvider()
 prov.addAttributes(field_list)
@@ -113,20 +121,23 @@ v_layer.startEditing()
 prov.addFeatures(feats)
 v_layer.commitChanges()
  
-QgsMapLayerRegistry.instance().addMapLayer(v_layer)
+QgsProject.instance().addMapLayer(v_layer)
 
 group="T1_T3" # "T0" or "T1_T3" or "Arterial"
 
 # Set the directory where the input files are stored
-directory='C:/Users/'+user+'/World Resources Institute/Urban Land Use - Documents/AUE Data and Maps/City Data/'+region+'/'+city+'/'+city+'_Blocks/'+city+'_'+group+'/'
+directory=dir_prefix+city+'/'+city+'_Blocks/'+city+'_'+group+'/'
 #directory='C:/Users/'+user+'/World Resources Institute/Urban Land Use - Documents/AUE Data and Maps/WRI-NGS custom data from NYU/#WRI_Mexican_cities_submission'+'/'+city+'/'+city+'_Blocks'+'/'+city+'_'+group+'/'
 
 # Add group for layers
-iface.legendInterface().addGroup(''+city+'_'+feature_name+'_'+group+'')
+group_name = f"{city}_{feature_name}_{group}"
 
+# Access the layer tree root
 root = QgsProject.instance().layerTreeRoot()
 
-mygroup = root.findGroup(''+city+'_'+feature_name+'_'+group+'')
+mygroup = root.findGroup(group_name)
+if mygroup is None:
+    mygroup = root.addGroup(group_name)
 
 # load vector layers
 for files in os.listdir(directory):
@@ -139,7 +150,7 @@ for files in os.listdir(directory):
         print(files)
 
         # add the layer to the registry
-        QgsMapLayerRegistry.instance().addMapLayer(vlayer, False)
+        QgsProject.instance().addMapLayer(vlayer, False)
         # fix for QGIS 3
         # QgsProject.instance().addMapLayer(vlayer, False)
         
@@ -165,16 +176,18 @@ for file in fileList:
 
 # Get the Coordinate Reference System and the list of fields from the last input file
 crs = layer.crs().toWkt()
-field_list = layer.dataProvider().fields().toList()
+field_list = [field for field in layer.fields()] 
  
 # Create the merged layer by checking the geometry type of  the input files (for other types, please see the API documentation)
-if layer.wkbType()==QGis.WKBPoint:
-    v_layer = QgsVectorLayer('Point?crs=' + crs, "Boundary T1_T3 Merged", "memory")
-if layer.wkbType()==QGis.WKBLineString:
-    v_layer = QgsVectorLayer('LineString?crs=' + crs, "Boundary T1_T3 Merged", "memory")
-if layer.wkbType()==QGis.WKBPolygon:
-    v_layer = QgsVectorLayer('Polygon?crs=' + crs, "Boundary T1_T3 Merged", "memory")
- 
+merge_tag="Boundary T1_T3 Merged"
+if wkb_type == QgsWkbTypes.Point:
+    v_layer = QgsVectorLayer(f'Point?crs={crs}', merge_tag, "memory")
+elif wkb_type == QgsWkbTypes.LineString:
+    v_layer = QgsVectorLayer(f'LineString?crs={crs}', merge_tag, "memory")
+elif wkb_type == QgsWkbTypes.Polygon:
+    v_layer = QgsVectorLayer(f'Polygon?crs={crs}', merge_tag, "memory")
+elif wkb_type == QgsWkbTypes.MultiLineString:
+    v_layer = QgsVectorLayer(f'MultiLineString?crs={crs}', merge_tag, "memory")
 # Add the features to the merged layer
 prov = v_layer.dataProvider()
 prov.addAttributes(field_list)
@@ -183,16 +196,18 @@ v_layer.startEditing()
 prov.addFeatures(feats)
 v_layer.commitChanges()
  
-QgsMapLayerRegistry.instance().addMapLayer(v_layer)
+QgsProject.instance().addMapLayer(v_layer)
 
 # Merge T0 and T1_T3 boundaries
-if layer.wkbType()==QGis.WKBPoint:
-    v_layer = QgsVectorLayer('Point?crs=' + crs, city+'_Locales_Merged', "memory")
-if layer.wkbType()==QGis.WKBLineString:
-    v_layer = QgsVectorLayer('LineString?crs=' + crs, city+'_Locales_Merged', "memory")
-if layer.wkbType()==QGis.WKBPolygon:
-    v_layer = QgsVectorLayer('Polygon?crs=' + crs, city+'_Locales_Merged', "memory")
-    
+merge_tag=city+'_Locales_Merged'
+if wkb_type == QgsWkbTypes.Point:
+    v_layer = QgsVectorLayer(f'Point?crs={crs}', merge_tag, "memory")
+elif wkb_type == QgsWkbTypes.LineString:
+    v_layer = QgsVectorLayer(f'LineString?crs={crs}', merge_tag, "memory")
+elif wkb_type == QgsWkbTypes.Polygon:
+    v_layer = QgsVectorLayer(f'Polygon?crs={crs}', merge_tag, "memory")
+elif wkb_type == QgsWkbTypes.MultiLineString:
+    v_layer = QgsVectorLayer(f'MultiLineString?crs={crs}', merge_tag, "memory")  
 # Add the features to the merged layer
 prov = v_layer.dataProvider()
 prov.addAttributes(field_list)
@@ -201,17 +216,16 @@ v_layer.startEditing()
 prov.addFeatures(feats_stored)
 v_layer.commitChanges()
 
-QgsMapLayerRegistry.instance().addMapLayer(v_layer)
+QgsProject.instance().addMapLayer(v_layer)
 
 # add centroid coordinates to Locales_Merged file
-from PyQt4.QtCore import QVariant
+from PyQt5.QtCore import QVariant
 
 # add centroid coordinates to Locales_Merged file
 layerName = city+'_Locales_Merged'
-layer = QgsMapLayerRegistry.instance().mapLayersByName(layerName)[0]
+layer = QgsProject.instance().mapLayersByName(layerName)[0]
 
-print layer.name()
-fields = layer.pendingFields()
+fields = layer.fields()
 #for field in fields:
     #print field.displayName()
 
